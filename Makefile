@@ -1,41 +1,70 @@
-CC = gcc
-CFLAGS = -Iinclude -Wall -g
+# ---------------- Compiler and Flags ----------------
+CC      = gcc
+CFLAGS  = -Iinclude -Wall -g -fPIC
 
-OBJ = obj/mystrfunctions.o obj/myfilefunctions.o
-LIB = lib/libmyutils.a
+# ---------------- Directories ----------------
+OBJDIR  = obj
+BINDIR  = bin
+LIBDIR  = lib
 
-# Default target
-all: bin/client_static
+# ---------------- Files ----------------
+OBJS        = $(OBJDIR)/mystrfunctions.o $(OBJDIR)/myfilefunctions.o
+LIB_STATIC  = $(LIBDIR)/libmyutils.a
+LIB_DYNAMIC = $(LIBDIR)/libmyutils.so
 
-# Build object files
-obj/%.o: src/%.c
+# ---------------- Default Target ----------------
+all: $(BINDIR)/client_static $(BINDIR)/client_dynamic
+
+# ---------------- Build Rules ----------------
+
+# Object files
+$(OBJDIR)/%.o: src/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Build static library from object files
-$(LIB): $(OBJ)
-	ar rcs $(LIB) $(OBJ)
+# Static library
+$(LIB_STATIC): $(OBJS)
+	ar rcs $@ $^
 
-# Build main.o separately
-obj/main.o: src/main.c
-	$(CC) $(CFLAGS) -c src/main.c -o obj/main.o
+# Dynamic library
+$(LIB_DYNAMIC): $(OBJS)
+	$(CC) -shared -o $@ $^
 
-# Link client with static library
-bin/client_static: obj/main.o $(LIB)
-	$(CC) $(CFLAGS) obj/main.o -Llib -lmyutils -o bin/client_static
+# Main object
+$(OBJDIR)/main.o: src/main.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
-# Clean build artifacts
+# Static client
+$(BINDIR)/client_static: $(OBJDIR)/main.o $(LIB_STATIC)
+	$(CC) $(CFLAGS) $< -L$(LIBDIR) -lmyutils -o $@
+
+# Dynamic client
+$(BINDIR)/client_dynamic: $(OBJDIR)/main.o $(LIB_DYNAMIC)
+	$(CC) $(CFLAGS) $< -L$(LIBDIR) -lmyutils -o $@
+
+# Clean
 clean:
-	rm -f obj/*.o bin/* lib/*.a
-# Top-level Makefile
+	rm -f $(OBJDIR)/*.o $(BINDIR)/* $(LIBDIR)/*.a $(LIBDIR)/*.so
 
-SUBDIRS := src
+# ---------------- Install / Uninstall ----------------
+PREFIX     ?= /usr/local
+BINDIR_SYS = $(PREFIX)/bin
+MANDIR1    = $(PREFIX)/share/man/man1
+MANDIR3    = $(PREFIX)/share/man/man3
 
-all:
-	@for dir in $(SUBDIRS); do \
-		$(MAKE) -C $$dir; \
-	done
+install: all
+	@echo ">>> Installing client and man pages to $(PREFIX)"
+	sudo install -d $(BINDIR_SYS) $(MANDIR1) $(MANDIR3)
+	sudo install -m 0755 $(BINDIR)/client_dynamic $(BINDIR_SYS)/client
+	sudo install -m 0644 man/man1/client.1 $(MANDIR1)/
+	sudo gzip -f $(MANDIR1)/client.1
+	sudo install -m 0644 man/man3/mystrlen.3 $(MANDIR3)/
+	sudo gzip -f $(MANDIR3)/mystrlen.3
+	sudo install -m 0644 man/man3/wordCount.3 $(MANDIR3)/
+	sudo gzip -f $(MANDIR3)/wordCount.3
+	-@sudo mandb 2>/dev/null || true
 
-clean:
-	@for dir in $(SUBDIRS); do \
-		$(MAKE) -C $$dir clean; \
-	done
+uninstall:
+	@echo ">>> Removing installed files"
+	sudo rm -f $(BINDIR_SYS)/client
+	sudo rm -f $(MANDIR1)/client.1.gz
+	sudo rm -f $(MANDIR3)/mystrlen.3.gz $(MANDIR3)/wordCount.3.gz
