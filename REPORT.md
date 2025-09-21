@@ -1,3 +1,35 @@
+---
+
+## Feature-5: Creating and Accessing Man Pages
+
+### What I did
+- Created `man/man1/client.1` for the client program and `man/man3/mystrlen.3`, `man/man3/wordCount.3` for library functions.
+- Used groff formatting with sections: `.TH`, `.SH NAME`, `.SH SYNOPSIS`, `.SH DESCRIPTION`, `.SH AUTHOR`.
+- Updated the Makefile with `install` and `uninstall` targets to copy the binary to `/usr/local/bin` and man pages to `/usr/local/share/man/`.
+- Verified installation with:
+  - `client` runs globally
+  - `man client` shows program documentation
+  - `man 3 mystrlen` and `man 3 wordCount` show library function documentation
+- Tagged and released `v0.4.1-final` with assets uploaded on GitHub.
+
+### Q1: What are the important sections of a man page and why are they required?
+**Answer:**  
+The sections are standardized:
+- `.TH` — Title, section number, date, version.  
+- `.SH NAME` — Program/function name and short description.  
+- `.SH SYNOPSIS` — Usage or function prototype.  
+- `.SH DESCRIPTION` — Detailed explanation.  
+- `.SH AUTHOR` — Author information.  
+They ensure consistency and readability across Linux documentation.
+
+### Q2: What does the Makefile install target do and why compress man pages?
+**Answer:**  
+The `install` target copies the compiled binary to `/usr/local/bin` and documentation to `/usr/local/share/man/`. Man pages are compressed to save space (`.gz` format) and because the `man` program can read them directly.
+
+### Q3: How can a user view man page for a program vs a library function?
+**Answer:**  
+- Program man page (section 1): `man client`  
+- Library man page (section 3): `man 3 mystrlen` or `man 3 wordCount`
 ## Feature-3: Static Library Build
 
 ### What I did
